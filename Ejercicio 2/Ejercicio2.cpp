@@ -25,9 +25,52 @@
 // d. Proporcione un menú que permita evaluar lo pedido en este ejercicio. 
 
 #include <iostream>
+#include <algorithm>
 #include <vector>
 
 using namespace std;
+
+class Estudiante{
+    private:
+        string nombreCompleto;
+        int legajo;
+        vector<pair<string, float>> cursos;
+    
+    public:
+        Estudiante(string nombreCompleto, int legajo){
+            this->nombreCompleto = nombreCompleto;
+            this->legajo = legajo;
+        }
+
+        string getNombreCompleto(){
+            return nombreCompleto;
+        }
+
+        int getLegajo(){
+            return legajo;
+        }
+
+        void agregarCurso(string nombreCurso, float nota){
+            cursos.push_back(make_pair(nombreCurso, nota));
+        }
+
+        float getPromedioGeneral(){
+            float suma = 0;
+            for (int i = 0; i < cursos.size(); i++){
+                suma += cursos[i].second;
+            }
+            return suma / cursos.size();
+        }
+
+        bool operator<(Estudiante* e){
+            return nombreCompleto < e->getNombreCompleto();
+        }
+
+        friend ostream& operator<<(ostream& os, Estudiante& e){
+            os << e.nombreCompleto << " - " << e.legajo << " - " << e.getPromedioGeneral();
+            return os;
+        }
+};
 
 class Curso{
     private:
@@ -80,4 +123,80 @@ class Curso{
             }
             return nuevoCurso;
         }
+}
+
+int main(){
+    Curso c;
+    int opcion;
+
+    do{
+        cout << "Opciones: \n" << endl;
+        cout << "1. Inscribir estudiante\n" << endl;
+        cout << "2. Desinscribir estudiante\n" << endl;
+        cout << "3. Ver si un estudiante está inscripto\n" << endl;
+        cout << "4. Ver si el curso está completo\n" << endl;
+        cout << "5. Imprimir lista de estudiantes\n" << endl;
+        cout << "6. Copiar curso\n" << endl;
+        cout << "7. Salir\n" << endl;
+        cout << "Ingrese una opción: ";
+        cin >> opcion;
+
+        switch(opcion){
+            case 1:{
+                string nombreCompleto;
+                int legajo;
+                cout << "Ingrese el nombre completo del estudiante: ";
+                cin >> nombreCompleto;
+                cout << "Ingrese el legajo del estudiante: ";
+                cin >> legajo;
+                Estudiante* e = new Estudiante(nombreCompleto, legajo);
+                c.inscribirEstudiante(e);
+                break;
+            }
+            case 2:{
+                int legajo;
+                cout << "Ingrese el legajo del estudiante: ";
+                cin >> legajo;
+                c.desinscribirEstudiante(legajo);
+                break;
+            }
+            case 3:{
+                int legajo;
+                cout << "Ingrese el legajo del estudiante: ";
+                cin >> legajo;
+                if (c.estaInscripto(legajo)){
+                    cout << "El estudiante está inscripto" << endl;
+                }else{
+                    cout << "El estudiante no está inscripto" << endl;
+                }
+                break;
+            }
+            case 4:{
+                if (c.estaCompleto()){
+                    cout << "El curso está completo" << endl;
+                }else{
+                    cout << "El curso no está completo" << endl;
+                }
+                break;
+            }
+            case 5:
+                c.imprimirEstudiantes();
+                break;
+
+            case 6:{
+                Curso* nuevoCurso = c.copiarCurso();
+                cout << "Curso copiado" << endl;
+                break;
+            }
+            case 7:
+                cout << "Saliendo..." << endl;
+                break;
+                
+            default:
+                cout << "Opción inválida" << endl;
+                break;
+        }
+    } while (opcion != 7);
+
+    return 0;
 }
