@@ -34,7 +34,7 @@ class Estudiante{
     private:
         string nombreCompleto;
         int legajo;
-        vector<pair<string, float>> cursos;
+        vector<pair<string, float> > cursos;
     
     public:
         Estudiante(string nombreCompleto, int legajo){
@@ -123,7 +123,7 @@ class Curso{
             }
             return nuevoCurso;
         }
-}
+};
 
 int main(){
     Curso c;
