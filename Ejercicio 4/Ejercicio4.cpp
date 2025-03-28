@@ -63,7 +63,7 @@ public:
 
     void retirar(double retiro) override {
         if (balance < retiro) {
-            cajaDeAhorro->retirar(retiro); // Utiliza el método retirar de CajaDeAhorro
+            cajaDeAhorro->retirar(retiro);
             return;
         }
         balance -= retiro;
