@@ -1,202 +1,295 @@
-// 2. Escribir una clase denominada Curso que contiene un vector (std::vector) con
-// punteros a objetos estudiantes. 
-// a. El objeto estudiante simplemente cuenta con el nombre completo, su legajo
-// (que es único por alumno), una lista de cursos con su nota final y los métodos
-// que crea necesarios para obtener los datos del alumno: nombre completo,
-// legajo y su promedio general. En función de esto, califique todos los atributos
-// correctamente.
-// b. Como se mencionó anteriormente, un objeto de la clase Curso contendrá la lista
-// de estudiantes del curso (el vector conteniendo objetos tipo estudiante). La
-// clase Curso permite:
-// i. Inscribir y desinscribir estudiantes al curso.
-// ii. Ver si un estudiante se encuentra inscripto o no en el curso buscándolo por
-// su legajo.
-// iii. Indicar si el curso está completo o no, teniendo en cuenta que el curso tiene
-// una capacidad de 20 alumnos.
-// iv. Imprimir la lista de estudiantes en orden alfabético. Para ello, utilice el
-// algoritmo std::sort() en <algorithm>, el cual requerirá sobreescribir el
-// operador “<”, y sobreescriba el operador “<<” (del método y clase que
-// correspondan) para presentar los datos por pantalla.
-// v. Dado que algunos cursos comparten la mayor parte de los estudiantes, se
-// desea poder hacer una copia del objeto curso. Justifique su respuesta con
-// un comentario en el código (esta puede llevar varias líneas), indicando de
-// que tipo de copia se trata y como la hizo.
-// c. ¿Qué tipo de relación existe entre los objetos curso y estudiante?
-// d. Proporcione un menú que permita evaluar lo pedido en este ejercicio. 
-
 #include <iostream>
-#include <algorithm>
 #include <vector>
+#include <algorithm>
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
-class Estudiante{
+class Estudiante {
     private:
         string nombreCompleto;
         int legajo;
         vector<pair<string, float> > cursos;
-    
+
     public:
-        Estudiante(string nombreCompleto, int legajo){
-            this->nombreCompleto = nombreCompleto;
-            this->legajo = legajo;
-        }
+        Estudiante(string nombreCompleto, int legajo, vector<pair<string, float> > cursos = {}) 
+            : nombreCompleto(nombreCompleto), legajo(legajo) {}
 
-        string getNombreCompleto(){
-            return nombreCompleto;
-        }
+        string getNombreCompleto() const { return nombreCompleto; }
+        int getLegajo() const { return legajo; }
 
-        int getLegajo(){
-            return legajo;
-        }
-
-        void agregarCurso(string nombreCurso, float nota){
-            cursos.push_back(make_pair(nombreCurso, nota));
-        }
-
-        float getPromedioGeneral(){
-            float suma = 0;
-            for (int i = 0; i < cursos.size(); i++){
-                suma += cursos[i].second;
+        void agregarCurso(string nombreCurso, float nota) {
+            for (auto& curso : cursos) {
+                if (curso.first == nombreCurso) { 
+                    curso.second = nota; // Actualiza la nota si el curso ya está
+                    return;
+                }
             }
+            cursos.push_back({nombreCurso, nota});
+        }
+
+        float getPromedioGeneral() const {
+            if (cursos.empty()) return 0.0;
+            float suma = 0;
+            for (const auto& curso : cursos)
+                suma += curso.second;
             return suma / cursos.size();
         }
 
-        bool operator<(Estudiante* e){
-            return nombreCompleto < e->getNombreCompleto();
+        bool operator<(const Estudiante& e) const {
+            return nombreCompleto < e.nombreCompleto;
         }
 
-        friend ostream& operator<<(ostream& os, Estudiante& e){
-            os << e.nombreCompleto << " - " << e.legajo << " - " << e.getPromedioGeneral();
+        friend ostream& operator<<(ostream& os, const Estudiante& e) {
+            os << e.nombreCompleto << " - " << e.legajo 
+            << " - Promedio: " << e.getPromedioGeneral();
             return os;
         }
 };
 
-class Curso{
+class Curso {
     private:
+        string nombre;
         vector<Estudiante*> estudiantes;
-        int capacidad = 20;
-    
+        static const int capacidad = 20;
+
     public:
-        void inscribirEstudiante(Estudiante* e){
-            if (estudiantes.size() < capacidad){
+        Curso(string nombre) : nombre(nombre) {}
+
+        string getNombre() const { return nombre; }
+
+        void inscribirEstudiante(Estudiante* e) {
+            if (estudiantes.size() < capacidad) {
                 estudiantes.push_back(e);
-            }else{
+            } else {
                 cout << "Error: El curso está completo" << endl;
             }
         }
 
-        void desinscribirEstudiante(int legajo){
-            for (int i = 0; i < estudiantes.size(); i++){
-                if (estudiantes[i]->getLegajo() == legajo){
-                    estudiantes.erase(estudiantes.begin() + i);
-                    return;
-                }
-            }
-            cout << "Error: No se encontró el estudiante" << endl;
-        }
-
-        bool estaInscripto(int legajo){
-            for (int i = 0; i < estudiantes.size(); i++){
-                if (estudiantes[i]->getLegajo() == legajo){
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        bool estaCompleto(){
-            return estudiantes.size() == capacidad;
-        }
-
-        void imprimirEstudiantes(){
-            sort(estudiantes.begin(), estudiantes.end());
-            for (int i = 0; i < estudiantes.size(); i++){
-                cout << *estudiantes[i] << endl;
+        void desinscribirEstudiante(int legajo) {
+            auto it = remove_if(estudiantes.begin(), estudiantes.end(), 
+                                [legajo](Estudiante* e) { return e->getLegajo() == legajo; });
+            if (it != estudiantes.end()) {
+                estudiantes.erase(it, estudiantes.end());
+            } else {
+                cout << "Error: No se encontró el estudiante" << endl;
             }
         }
 
-        Curso* copiarCurso(){
-            Curso* nuevoCurso = new Curso();
-            for (int i = 0; i < estudiantes.size(); i++){
-                nuevoCurso->inscribirEstudiante(estudiantes[i]);
+        bool estaInscripto(int legajo) const {
+            return any_of(estudiantes.begin(), estudiantes.end(),
+                        [legajo](Estudiante* e) { return e->getLegajo() == legajo; });
+        }
+
+        bool estaCompleto() const { return estudiantes.size() == capacidad; }
+
+        void imprimirEstudiantes() const {
+            vector<Estudiante*> copia = estudiantes;
+            sort(copia.begin(), copia.end(), 
+                [](Estudiante* a, Estudiante* b) { return *a < *b; });
+
+            for (Estudiante* e : copia)
+                cout << *e << endl;
+        }
+
+        Curso* copiarCurso() const {
+            Curso* nuevoCurso = new Curso(this->nombre);
+            for (Estudiante* e : estudiantes) {
+                nuevoCurso->inscribirEstudiante(e);
             }
             return nuevoCurso;
         }
+
+        friend ostream& operator<<(ostream& os, const Curso& c) {
+            os << c.nombre;
+            return os;
+        }
 };
 
-int main(){
-    Curso c;
+int main() {
     int opcion;
+    vector<Curso> cursos;
+    vector<Estudiante*> estudiantes;
 
-    do{
-        cout << "Opciones: \n" << endl;
-        cout << "1. Inscribir estudiante\n" << endl;
-        cout << "2. Desinscribir estudiante\n" << endl;
-        cout << "3. Ver si un estudiante está inscripto\n" << endl;
-        cout << "4. Ver si el curso está completo\n" << endl;
-        cout << "5. Imprimir lista de estudiantes\n" << endl;
-        cout << "6. Copiar curso\n" << endl;
-        cout << "7. Salir\n" << endl;
-        cout << "Ingrese una opción: ";
+    do {
+        cout << "\nOpciones:\n"
+             << "1. Inscribir estudiante\n"
+             << "2. Desinscribir estudiante\n"
+             << "3. Ver si un estudiante está inscripto\n"
+             << "4. Ver si el curso está completo\n"
+             << "5. Imprimir lista de estudiantes\n"
+             << "6. Copiar curso\n"
+             << "7. Dar el promedio de un estudiante\n"
+             << "8. Salir\n"
+             << "Ingrese una opción: ";
         cin >> opcion;
+        cin.ignore();
 
-        switch(opcion){
-            case 1:{
-                string nombreCompleto;
-                int legajo;
+        switch (opcion) {
+            case 1: {
+                string nombreCurso, nombreEstudiante;
+                int legajo; float nota;
+                cout << "Ingrese el nombre del curso: ";
+                getline(cin, nombreCurso);
+
                 cout << "Ingrese el nombre completo del estudiante: ";
-                cin >> nombreCompleto;
+                getline(cin, nombreEstudiante);
                 cout << "Ingrese el legajo del estudiante: ";
                 cin >> legajo;
-                Estudiante* e = new Estudiante(nombreCompleto, legajo);
-                c.inscribirEstudiante(e);
-                break;
-            }
-            case 2:{
-                int legajo;
-                cout << "Ingrese el legajo del estudiante: ";
-                cin >> legajo;
-                c.desinscribirEstudiante(legajo);
-                break;
-            }
-            case 3:{
-                int legajo;
-                cout << "Ingrese el legajo del estudiante: ";
-                cin >> legajo;
-                if (c.estaInscripto(legajo)){
-                    cout << "El estudiante está inscripto" << endl;
-                }else{
-                    cout << "El estudiante no está inscripto" << endl;
-                }
-                break;
-            }
-            case 4:{
-                if (c.estaCompleto()){
-                    cout << "El curso está completo" << endl;
-                }else{
-                    cout << "El curso no está completo" << endl;
-                }
-                break;
-            }
-            case 5:
-                c.imprimirEstudiantes();
-                break;
+                cout<<"Ingrese la nota del estudiante: ";
+                cin >> nota;
+                cin.ignore();
 
-            case 6:{
-                Curso* nuevoCurso = c.copiarCurso();
-                cout << "Curso copiado" << endl;
+                // Buscar o crear curso
+                Curso* curso = nullptr;
+                for (auto& c : cursos) {
+                    if (c.getNombre() == nombreCurso) {
+                        curso = &c;
+                        break;
+                    }
+                }
+                if (!curso) {
+                    cursos.emplace_back(nombreCurso); // Agrega un nuevo curso al vector
+                    curso = &cursos.back(); // Ahora curso apunta a la nueva instancia creada
+                }
+
+                // Buscar o crear estudiante
+                Estudiante* estudiante = nullptr;
+                for (auto* e : estudiantes) {
+                    if (e->getLegajo() == legajo) {
+                        estudiante = e;
+                        break;
+                    }
+                }
+                if (!estudiante) {
+                    estudiante = new Estudiante(nombreEstudiante, legajo);
+                    estudiantes.push_back(estudiante);
+                }
+
+                curso->inscribirEstudiante(estudiante);
+                estudiante->agregarCurso(nombreCurso, nota);
                 break;
             }
-            case 7:
+            case 2: {
+                int legajo; 
+                string nombreCurso;
+                cout << "Ingrese el legajo del estudiante: ";
+                cin >> legajo;
+                cin.ignore();
+                cout << "Ingrese el nombre del curso: ";
+                getline(cin, nombreCurso);
+
+                // Buscar el curso y desinscribir al estudiante
+                for (auto& c : cursos) {
+                    if (c.getNombre() == nombreCurso) {
+                        c.desinscribirEstudiante(legajo);
+                        break;
+                    }
+                }
+
+                // Eliminar el estudiante de la lista de estudiantes global si ya no tiene cursos
+                auto it = remove_if(estudiantes.begin(), estudiantes.end(),
+                                    [legajo](Estudiante* e) { return e->getLegajo() == legajo; });
+
+                if (it != estudiantes.end()) {
+                    for (auto iter = it; iter != estudiantes.end(); ++iter) {
+                        delete *iter; // Liberar memoria
+                    }
+                    estudiantes.erase(it, estudiantes.end());
+                }
+
+                break;
+            }
+            case 3: {
+                int legajo;
+                string nombreCurso;
+                cout << "Ingrese el legajo del estudiante: ";
+                cin >> legajo;
+                cin.ignore();
+                cout << "Ingrese el nombre del curso: ";
+                getline(cin, nombreCurso);
+
+                bool encontrado = false;
+                for (const auto& c : cursos) {
+                    if (c.getNombre() == nombreCurso && c.estaInscripto(legajo)) {
+                        cout << "El estudiante está inscripto en el curso" << endl;
+                        encontrado = true;
+                        break;
+                    }
+                }
+                if (!encontrado) {
+                    cout << "El estudiante no está inscripto en el curso" << endl;
+                }
+                break;
+            }
+            case 4: {
+                string nombreCurso;
+                cout << "Ingrese el nombre del curso: ";
+                getline(cin, nombreCurso);
+
+                for (const auto& c : cursos) {
+                    if (c.getNombre() == nombreCurso) {
+                        if (c.estaCompleto()) {
+                            cout << "El curso está completo" << endl;
+                        } else {
+                            cout << "El curso no está completo" << endl;
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+            case 5: {
+                string nombreCurso;
+                cout << "Ingrese el nombre del curso: ";
+                getline(cin, nombreCurso);
+
+                for (const auto& c : cursos) {
+                    if (c.getNombre() == nombreCurso) {
+                        c.imprimirEstudiantes();
+                        break;
+                    }
+                }
+                break;
+            }
+            case 6: {
+                string nombreCurso;
+                cout << "Ingrese el nombre del curso a copiar: ";
+                getline(cin, nombreCurso);
+
+                for (const auto& c : cursos) {
+                if (c.getNombre() == nombreCurso) {
+                    cursos.push_back(*c.copiarCurso());
+                    cout << "Curso copiado" << endl;
+                    break;
+                    }
+                }   
+
+                break;
+            }
+            case 7: {
+                int legajo;
+                cout << "Ingrese el legajo del estudiante: ";
+                cin >> legajo;
+
+                for (const auto& e : estudiantes) {
+                    if (e->getLegajo() == legajo) {
+                        cout << "Promedio general: " << e->getPromedioGeneral() << endl;
+                        break;
+                    }
+                }
+                break;
+            }
+            case 8:
                 cout << "Saliendo..." << endl;
                 break;
-                
+
             default:
-                cout << "Opción inválida" << endl;
-                break;
+                cout << "Opción inválida." << endl;
         }
-    } while (opcion != 7);
+        this_thread::sleep_for(chrono::seconds(2));
+    } while (opcion != 8);
 
     return 0;
 }
