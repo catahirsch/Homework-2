@@ -10,14 +10,19 @@ class Estudiante {
     private:
         string nombreCompleto;
         int legajo;
-        vector<pair<string, float> > cursos;
+        vector<pair<string, float> > cursos; // {nombreCurso, nota}
 
     public:
         Estudiante(string nombreCompleto, int legajo, vector<pair<string, float> > cursos = {}) 
             : nombreCompleto(nombreCompleto), legajo(legajo) {}
 
-        string getNombreCompleto() const { return nombreCompleto; }
-        int getLegajo() const { return legajo; }
+        string getNombreCompleto() const {
+            return nombreCompleto; 
+        } 
+
+        int getLegajo() const { 
+            return legajo; 
+        }
 
         void agregarCurso(string nombreCurso, float nota) {
             for (auto& curso : cursos) {
@@ -29,12 +34,12 @@ class Estudiante {
             cursos.push_back({nombreCurso, nota});
         }
 
-        float getPromedioGeneral() const {
+        float getPromedioGeneral() const {  // Promedio de todas las notas
             if (cursos.empty()) return 0.0;
             float suma = 0;
             for (const auto& curso : cursos)
                 suma += curso.second;
-            return suma / cursos.size();
+            return suma / cursos.size(); // Divido por la cantidad de cursos
         }
 
         bool operator<(const Estudiante& e) const {
@@ -52,16 +57,18 @@ class Curso {
     private:
         string nombre;
         vector<Estudiante*> estudiantes;
-        static const int capacidad = 20;
+        static const int capacidad = 20; // Capacidad máxima de estudiantes
 
     public:
         Curso(string nombre) : nombre(nombre) {}
 
-        string getNombre() const { return nombre; }
+        string getNombre() const { 
+            return nombre; 
+        }
 
         void inscribirEstudiante(Estudiante* e) {
             if (estudiantes.size() < capacidad) {
-                estudiantes.push_back(e);
+                estudiantes.push_back(e); // Agrega el estudiante al curso
             } else {
                 cout << "Error: El curso está completo" << endl;
             }
@@ -69,9 +76,9 @@ class Curso {
 
         void desinscribirEstudiante(int legajo) {
             auto it = remove_if(estudiantes.begin(), estudiantes.end(), 
-                                [legajo](Estudiante* e) { return e->getLegajo() == legajo; });
+                                [legajo](Estudiante* e) { return e->getLegajo() == legajo; }); // Busca el estudiante por legajo
             if (it != estudiantes.end()) {
-                estudiantes.erase(it, estudiantes.end());
+                estudiantes.erase(it, estudiantes.end()); // Elimina al estudiante
             } else {
                 cout << "Error: No se encontró el estudiante" << endl;
             }
@@ -79,24 +86,26 @@ class Curso {
 
         bool estaInscripto(int legajo) const {
             return any_of(estudiantes.begin(), estudiantes.end(),
-                        [legajo](Estudiante* e) { return e->getLegajo() == legajo; });
+                        [legajo](Estudiante* e) { return e->getLegajo() == legajo; }); // Busca el estudiante por legajo
         }
 
-        bool estaCompleto() const { return estudiantes.size() == capacidad; }
+        bool estaCompleto() const { 
+            return estudiantes.size() == capacidad; 
+        }
 
         void imprimirEstudiantes() const {
             vector<Estudiante*> copia = estudiantes;
             sort(copia.begin(), copia.end(), 
-                [](Estudiante* a, Estudiante* b) { return *a < *b; });
+                [](Estudiante* a, Estudiante* b) { return *a < *b; }); // Ordena por nombre
 
             for (Estudiante* e : copia)
-                cout << *e << endl;
+                cout << *e << endl; // Imprime el estudiante
         }
 
         Curso* copiarCurso() const {
             Curso* nuevoCurso = new Curso(this->nombre);
             for (Estudiante* e : estudiantes) {
-                nuevoCurso->inscribirEstudiante(e);
+                nuevoCurso->inscribirEstudiante(e); // Copia los estudiantes al curso nuevo
             }
             return nuevoCurso;
         }
@@ -109,8 +118,8 @@ class Curso {
 
 int main() {
     int opcion;
-    vector<Curso> cursos;
-    vector<Estudiante*> estudiantes;
+    vector<Curso> cursos; // Vector de cursos
+    vector<Estudiante*> estudiantes; // Vector de estudiantes
 
     do {
         cout << "\nOpciones:\n"
@@ -180,16 +189,14 @@ int main() {
                 cout << "Ingrese el nombre del curso: ";
                 getline(cin, nombreCurso);
 
-                // Buscar el curso y desinscribir al estudiante
-                for (auto& c : cursos) {
+                for (auto& c : cursos) { // Buscar el curso y desinscribir al estudiante
                     if (c.getNombre() == nombreCurso) {
                         c.desinscribirEstudiante(legajo);
                         break;
                     }
                 }
 
-                // Eliminar el estudiante de la lista de estudiantes global si ya no tiene cursos
-                auto it = remove_if(estudiantes.begin(), estudiantes.end(),
+                auto it = remove_if(estudiantes.begin(), estudiantes.end(), // Eliminar el estudiante de la lista de estudiantes global si ya no tiene cursos
                                     [legajo](Estudiante* e) { return e->getLegajo() == legajo; });
 
                 if (it != estudiantes.end()) {

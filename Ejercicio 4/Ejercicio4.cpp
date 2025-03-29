@@ -5,97 +5,114 @@
 using namespace std;
 
 class Banco {
-protected:
-    double balance;
-    string titularCuenta;
+    protected:
+        double balance;
+        string titularCuenta;
 
-public:
-    Banco(double balance, string titularCuenta) {
-        this->balance = balance;
-        this->titularCuenta = titularCuenta;
-    }
+    public:
+        Banco(double balance, string titularCuenta) {
+            this->balance = balance;
+            this->titularCuenta = titularCuenta;
+        }
 
-    virtual void depositar(double ingreso) {
-        balance += ingreso;
-    }
+        virtual void depositar(double ingreso) { 
+            balance += ingreso;
+        }
 
-    virtual void retirar(double retiro) = 0;
+        virtual void retirar(double retiro) = 0;
 
-    virtual void mostrarInfo() = 0;
+        virtual void mostrarInfo() = 0;
 };
 
 class CajaDeAhorro : public Banco {
-private:
-    int mostrarContador;
+    private:
+        int mostrarContador;
 
-public:
-    CajaDeAhorro(double balance, string titularCuenta) : Banco(balance, titularCuenta), mostrarContador(0) {}
+    public:
+        CajaDeAhorro(double balanceInicial, string titularCuenta)
+            : Banco(balanceInicial, titularCuenta), mostrarContador(0) {}
 
-    void retirar(double retiro) override {
-        if (balance < retiro) {
-            cout << "El dinero a retirar es mayor a la cantidad disponible." << endl;
-            return;
+        void retirar(double retiro) override {
+            if (balance < retiro) { // Si el retiro es mayor al balance disponible se muestra un mensaje y se retorna sin hacer nada
+                cout << "El dinero a retirar es mayor a la cantidad disponible." << endl;
+                return;
+            }
+            balance -= retiro;
         }
-        balance -= retiro;
-    }
 
-    void mostrarInfo() override {
-        if (mostrarContador >= 3) { // Descuento después de mostrar más de 2 veces
-            balance -= 20;
+        void mostrarInfo() override {
+            if (balance < 0) {
+                cout << "El balance no puede ser negativo.\n";
+                return;
+            }
+            mostrarContador++; // Se incrementa el contador
+            if (mostrarContador >= 3) { // Si se ha mostrado 3 veces el balance se descuenta $20
+                balance -= 20;
+            }
+            cout << "Balance: " << balance << "\n";
+            cout << "Nombre del titular: " << titularCuenta << "\n";
+            cout << "Tipo de cuenta: Caja de Ahorro\n";
         }
-        cout << "Balance: " << balance << "\n";
-        cout << "Nombre del titular: " << titularCuenta << "\n";
-        cout << "Tipo de cuenta: Caja de Ahorro\n";
-        mostrarContador++;
-    }
 
-    friend class CuentaCorriente;
+        friend class CuentaCorriente;
 };
 
+
 class CuentaCorriente : public Banco {
-private:
-    CajaDeAhorro *cajaDeAhorro;
+    private:
+        CajaDeAhorro& cajaDeAhorro; // Referencia a la cuenta de ahorro
+        double balanceCorriente;
 
-public:
-    CuentaCorriente(double balance, string titularCuenta, CajaDeAhorro *cajaDeAhorro) : Banco(balance, titularCuenta) {
-        this->cajaDeAhorro = cajaDeAhorro;
-    }
+    public:
+        CuentaCorriente(double balanceCorriente, string titularCuenta, CajaDeAhorro& cajaDeAhorro)
+            : Banco(balanceCorriente, titularCuenta),
+            cajaDeAhorro(cajaDeAhorro),
+            balanceCorriente(balanceCorriente) {} 
 
-    void retirar(double retiro) override {
-        if (balance < retiro) {
-            cajaDeAhorro->retirar(retiro);
-            return;
+        void retirar(double retiro) override {
+            if (balanceCorriente < retiro) {
+                double retiroAhorro = retiro - balanceCorriente; // Retiro de la cuenta de ahorro
+                balanceCorriente = 0; // Se vacía la cuenta corriente
+                cajaDeAhorro.retirar(retiroAhorro); // Se retira de la cuenta de ahorro
+            }else{
+                balanceCorriente -= retiro; // Se retira de la cuenta corriente
+            }
         }
-        balance -= retiro;
-    }
 
-    void mostrarInfo() override {
-        cout << "Balance: " << balance << "\n";
-        cout << "Nombre del titular: " << titularCuenta << "\n";
-        cout << "Tipo de cuenta: Cuenta Corriente\n";
-    }
+        void mostrarInfo() override {
+            cout << "Balance: " << balanceCorriente << "\n";
+            cout << "Nombre del titular: " << titularCuenta << "\n";
+            cout << "Tipo de cuenta: Cuenta Corriente\n";
+        }
 };
 
 int main() {
-    double balance;
+    double balanceAhorro;
+    double balanceCorriente;
     string titularCuenta;
     int opcion;
 
-    cout << "Ingrese el balance de la cuenta: ";
-    cin >> balance;
     cout << "Ingrese el nombre del titular de la cuenta: ";
-    cin >> titularCuenta;
+    getline(cin, titularCuenta);
 
-    CajaDeAhorro caja_ahorro(balance, titularCuenta);
-    CuentaCorriente cuentacorriente(balance, titularCuenta, &caja_ahorro);
+    cout << "Ingrese el balance de la cuenta de ahorro: ";
+    cin >> balanceAhorro;
+
+    cout << "Ingrese el balance de la cuenta corriente: ";
+    cin >> balanceCorriente;
+
+    CajaDeAhorro caja_ahorro(balanceAhorro, titularCuenta);
+    CuentaCorriente cuentacorriente(balanceCorriente, titularCuenta, caja_ahorro);
 
     do {
         cout << "\nOpciones:\n";
-        cout << "1. Depositar dinero\n";
-        cout << "2. Retirar dinero\n";
-        cout << "3. Mostrar información de la cuenta de ahorro\n";
-        cout << "4. Mostrar información de la cuenta corriente\n";
-        cout << "5. Salir\n";
+        cout << "1. Depositar dinero a la cuenta de ahorro\n";
+        cout << "2. Depositar dinero a la cuenta corriente\n";
+        cout << "3. Retirar dinero de la cuenta de ahorro\n";
+        cout << "4. Retirar dinero de la cuenta corriente\n";
+        cout << "5. Mostrar información de la cuenta de ahorro\n";
+        cout << "6. Mostrar información de la cuenta corriente\n";
+        cout << "7. Salir\n";
         cout << "Ingrese una opción: ";
         cin >> opcion;
 
@@ -108,29 +125,43 @@ int main() {
                 break;
             }
             case 2: {
+                double ingreso;
+                cout << "Ingrese la cantidad de dinero a depositar: ";
+                cin >> ingreso;
+                cuentacorriente.depositar(ingreso);
+                break;
+            }
+            case 3: {
+                double retiro;
+                cout << "Ingrese la cantidad de dinero a retirar: ";
+                cin >> retiro;
+                caja_ahorro.retirar(retiro);
+                break;
+            }
+            case 4: {
                 double retiro;
                 cout << "Ingrese la cantidad de dinero a retirar: ";
                 cin >> retiro;
                 cuentacorriente.retirar(retiro);
                 break;
             }
-            case 3: {
+            case 5: {
                 caja_ahorro.mostrarInfo();
                 break;
             }
-            case 4: {
+            case 6: {
                 cuentacorriente.mostrarInfo();
                 break;
             }
-            case 5: {
+            case 7: {
+                cout << "Saliendo...\n";
                 break;
             }
             default:
                 cout << "Opción no válida.\n";
         }
-
         this_thread::sleep_for(chrono::seconds(2));
-    } while (opcion != 5);
+    } while (opcion != 7);
 
     return 0;
 }

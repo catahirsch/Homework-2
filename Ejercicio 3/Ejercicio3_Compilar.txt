@@ -1,0 +1,4 @@
+*Como compilar*
+
+g++ Ejercicio3.cpp -o ej3 -std=c++11
+./ej3
